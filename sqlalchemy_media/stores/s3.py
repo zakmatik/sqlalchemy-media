@@ -36,9 +36,9 @@ class S3Store(Store):
     base_url = 'https://{0}.s3.amazonaws.com'
 
     def __init__(self, bucket: str, access_key: str, secret_key: str,
-                 region: str, max_age: int = DEFAULT_MAX_AGE,
+                 region: str, session_token: str = None, max_age: int = DEFAULT_MAX_AGE,
                  prefix: str = None, base_url: str = None,
-                 cdn_url: str = None, cdn_prefix_ignore: bool = False, 
+                 cdn_url: str = None, cdn_prefix_ignore: bool = False,
                  acl: str = 'private'):
         self.bucket = bucket
         self.access_key = access_key
@@ -47,6 +47,7 @@ class S3Store(Store):
         self.max_age = max_age
         self.prefix = prefix
         self.acl = acl
+        self.session_token = session_token
 
         if base_url:
             self.base_url = base_url
@@ -72,7 +73,7 @@ class S3Store(Store):
                      rrs: bool = False):
         ensure_aws4auth()
 
-        auth = AWS4Auth(self.access_key, self.secret_key, self.region, 's3')
+        auth = AWS4Auth(self.access_key, self.secret_key, self.region, 's3', session_token=self.session_token)
         if rrs:
             storage_class = 'REDUCED_REDUNDANCY'
         else:
@@ -99,7 +100,7 @@ class S3Store(Store):
     def delete(self, filename: str):
         ensure_aws4auth()
         url = self._get_s3_url(filename)
-        auth = AWS4Auth(self.access_key, self.secret_key, self.region, 's3')
+        auth = AWS4Auth(self.access_key, self.secret_key, self.region, 's3', session_token=self.session_token)
         res = requests.delete(url, auth=auth)
         if not 200 <= res.status_code < 300:
             raise S3Error(res.text)
@@ -107,7 +108,7 @@ class S3Store(Store):
     def open(self, filename: str, mode: str = 'rb') -> FileLike:
         ensure_aws4auth()
         url = self._get_s3_url(filename)
-        auth = AWS4Auth(self.access_key, self.secret_key, self.region, 's3')
+        auth = AWS4Auth(self.access_key, self.secret_key, self.region, 's3', session_token=self.session_token)
         res = requests.get(url, auth=auth)
         if not 200 <= res.status_code < 300:
             raise S3Error(res.text)
